@@ -25,7 +25,7 @@ SECRET_KEY = '&k09tp!50ksc=4$nyl=t(fx+=d9%k^w+!c33@phz5h8^^p(m=8'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['.ngrok.io']
 
 
 # Application definition
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_twilio',
 ]
 
 MIDDLEWARE_CLASSES = [
