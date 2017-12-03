@@ -1,0 +1,9 @@
+from rapidconnect import RapidConnect
+rapid = RapidConnect(*PROJECT*, *KEY*)
+
+result = rapid.call('YelpAPI', 'getBusinesses', { 
+	'accessToken': 'BO0AYqJQdXB7nrSehYzcOxBbAAGieshsFgPK1_clBWY_-fesovCVPiklv_CGOXVM0hJHGf9_bi32r-Gro3JFtdhzakOOXeQWFyzBREzKwJUlmCN3xOYzmcK_TmwkWnYx',
+	'location': 'San Fransisco',
+	'categories': 'american restaurant',
+	'limit': '3' 
+})
