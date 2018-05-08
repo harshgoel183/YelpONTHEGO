@@ -13,33 +13,44 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 @csrf_exempt
 def sms_response(request):
+    globalCount = 0
     query = request.POST.get('Body','')
     print(query)
     # print(request.__dict__)
     term,location = diagflowapi(query)
 
     print(term,location)
-    name,rating,phone,latitude,longitude = yelpapi(term,location)
-    print(name,rating,phone,latitude,longitude)
+    name, rating, phone, longitude, latitude=yelpapi(term,location)
+
+    # name,rating,phone,latitude,longitude = yelpapi(term,location)
+    print(name,rating,phone,longitude,latitude)
     # define a series of location markers and their styles
     # syntax:  markers=markerStyles|markerLocation1|markerLocation2|... etc.
     marker_list = []
     # marker_list.append("markers=color:blue|label:S|11211|11206|11222")  # blue S at several zip code's centers
-    marker_list.append("markers=|label:B|color:0xFFFF00|"+str(latitude)+","+str(longitude)+"|")  # tiny yellow B at lat/long B ko resturnt name dena hai
+    msgStr = ""
+    for i in range(0,len(name)):
+        marker_list.append("markers=|label:"+str(i+1)+"|color:0xFFFF00|"+str(latitude[i])+","+str(longitude[i])+"|")  # tiny yellow B at lat/long B ko resturnt name dena hai
+        msgStr += "\n"+str(i+1)+") "+str(name[i]) +", Rating: " +str(rating[i]) +", Ph: "+str(phone[i])
     # marker_list.append(
     #     "markers=size:mid|color:red|label:6|Brooklyn+Bridge,New+York,NY")  # mid-sized red 6 at search location
     # see http://code.google.com/apis/maps/documentation/staticmaps/#Markers
     googleUrl = get_static_google_map("google_map_example3", center=location, imgsize=(400, 400), imgformat="png", markers=marker_list)
     # Start our TwiML response
+
     resp = MessagingResponse()
     # Add a text message
-    msg = resp.message("Check out this sweet owl!")
+
+
+    msg = resp.message(msgStr)
 
     # Add a picture message
-    f = open(r'C:\Users\Harsh\Documents\GitHub\YelpONTHEGO\djtwilio\djtwilio\static\images\staticmap.png','wb')
+    f = open(r'C:\Users\Harsh\Documents\GitHub\YelpONTHEGO\djtwilio\djtwilio\static\images\staticmap'+str(globalCount)+'.png','wb')
     f.write(requests.get(googleUrl).content)
     f.close()
-    msg.media("/static/images/staticmap.png")
+
+    msg.media("/static/images/staticmap"+str(globalCount)+".png")
+    globalCount += 1
     return HttpResponse(str(resp))
 
 def get_static_google_map(filename_wo_extension, center=None, zoom=None, imgsize="500x500", imgformat="jpeg",
@@ -79,13 +90,18 @@ def get_static_google_map(filename_wo_extension, center=None, zoom=None, imgsize
     # a = urllib.request.urlretrieve(requestg, filename_wo_extension + "." + imgformat)  # Option 1: save image directly to disk
     # print(a)
 
-def yelpapi(term,location):
+def yelpapi(term,location,limiter = 3):
+    name = []
+    rating = []
+    phone = []
+    latitude = []
+    longitude = []
     # BASE_YELP = 'https://api.yelp.com/v3/businesses/search?term='+term+'&location='+location+'&limit=3'
     rapid = RapidConnect("default-application_5a246d92e4b0218e3e35f338", "c756cc4b-19a6-4574-b215-0f2c604d5960")
 
     result = rapid.call('YelpAPI', 'getBusinesses', {
         'term': term,
-        'limit': '3',
+        'limit': limiter,
         # 'categories': 'italian',
         'accessToken': 'BO0AYqJQdXB7nrSehYzcOxBbAAGieshsFgPK1_clBWY_-fesovCVPiklv_CGOXVM0hJHGf9_b'
                        'i32r-Gro3JFtdhzakOOXeQWFyzBREzKwJUlmCN3xOYzmcK_TmwkWnYx',
@@ -95,8 +111,13 @@ def yelpapi(term,location):
     # pprint.pprint(result)
     # print(result["businesses"][0]["name"],result["businesses"][0]["rating"],result["businesses"][0]["phone"],
     #       result["businesses"][0]["coordinates"]["latitude"],result["businesses"][0]["coordinates"]["longitude"])
-    return (result["businesses"][0]["name"],result["businesses"][0]["rating"],result["businesses"][0]["phone"],
-          result["businesses"][0]["coordinates"]["latitude"],result["businesses"][0]["coordinates"]["longitude"])
+    for i in range(0,limiter):
+        name.append(result["businesses"][i]["name"])
+        rating.append(result["businesses"][i]["rating"])
+        phone.append(result["businesses"][i]["phone"])
+        longitude.append(result["businesses"][i]["coordinates"]["longitude"])
+        latitude.append(result["businesses"][i]["coordinates"]["latitude"])
+    return (name,rating,phone,longitude,latitude)
 
 
 def diagflowapi(query):
@@ -115,10 +136,26 @@ def diagflowapi(query):
     # pprint.pprint(response)
     response = json.loads(request.getresponse().read().decode('utf-8'))
     # message = response['result']['parameter']['location']
-    # pprint.pprint(response)
-    message1 = response['result']['parameters']['Restaurant'][0]
-    message2 = response['result']['parameters']['location']['city']
-    # print(message1)
-    # print(message2)
-    return message1,message2
+    pprint.pprint(response)
+    if 'restaurant' or 'hotel' in query.lower():
+
+        rest1 = response['result']['parameters']['Restaurant'][0]
+        # message2 = response['result']['parameters']['location'][0]
+        rest2 = response['result']['parameters']['location'][0].values()
+        rest2 = list(rest2)
+        # print("harsh")
+        return rest1, rest2[0]
+    elif 'gas' in query.lower():
+        gas1 = response['result']['parameters']['Gas'][0]
+        # message2 = response['result']['parameters']['location'][0]
+        gas2 = response['result']['parameters']['location'].values()
+        gas2 = list(gas2)
+        return gas1, gas2[0]
+    # message1 = response['result']['parameters']['Restaurant'][0]
+    # # message2 = response['result']['parameters']['location'][0]
+    # message2 = response['result']['parameters']['location'][0].values()
+    # message2 = list(message2)
+    # print(v[0])
+
+    # return message1,message2[0]
     # print (response.read())
